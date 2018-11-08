@@ -15,6 +15,7 @@
  ********************************************************************************/
 
 // tslint:disable:no-unused-expression
+// tslint:disable:no-any
 
 import { enableJSDOM } from '@theia/core/lib/browser/test/jsdom';
 

@@ -77,11 +77,23 @@ export class ElectronMenuContribution implements FrontendApplicationContribution
             }
         }
 
+        const currentWindow = electron.remote.getCurrentWindow();
         const createdMenuBar = this.factory.createMenuBar();
+
+        /**
+         * OSX window environment has its menu bar at the top of the screen,
+         * windows share the same space, as if the menus were global.
+         */
         if (isOSX) {
             electron.remote.Menu.setApplicationMenu(createdMenuBar);
+
+            // Update the global menu bar based on the focused Electron BrowserWindow:
+            currentWindow.on('focus', () => {
+                electron.remote.Menu.setApplicationMenu(this.factory.createMenuBar());
+            });
+
         } else {
-            electron.remote.getCurrentWindow().setMenu(createdMenuBar);
+            currentWindow.setMenu(createdMenuBar);
         }
     }
 

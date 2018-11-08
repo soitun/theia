@@ -3,6 +3,8 @@
 ## v0.3.17
 - [plug-in] added `languages.registerCodeLensProvider` Plug-in API
 - [core] `ctrl+alt+a` and `ctrl+alt+d` to switch tabs left/right
+- [core] added `theia.applicationName` to application `package.json` and improved window title
+- [core] fixed an issue with OSX menus not being updated when switching windows.
 
 
 ## v0.3.16
