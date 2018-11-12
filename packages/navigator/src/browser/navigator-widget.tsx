@@ -30,6 +30,7 @@ import { ApplicationShell } from '@theia/core/lib/browser/shell/application-shel
 import { WorkspaceNode } from './navigator-tree';
 import { FileNavigatorModel } from './navigator-model';
 import { FileSystem } from '@theia/filesystem/lib/common/filesystem';
+import { isOSX, environment } from '@theia/core';
 import * as React from 'react';
 
 export const FILE_NAVIGATOR_ID = 'files';
@@ -172,9 +173,18 @@ export class FileNavigatorWidget extends FileTreeWidget {
         }
     }
 
+    protected canOpenWorkspaceFileAndFolder() {
+        return isOSX || !environment.electron.is();
+    }
+
     protected readonly openWorkspace = () => this.doOpenWorkspace();
     protected doOpenWorkspace() {
         this.commandService.executeCommand(WorkspaceCommands.OPEN_WORKSPACE.id);
+    }
+
+    protected readonly openFolder = () => this.doOpenFolder();
+    protected doOpenFolder() {
+        this.commandService.executeCommand(WorkspaceCommands.OPEN_FOLDER.id);
     }
 
     /**
@@ -182,12 +192,22 @@ export class FileNavigatorWidget extends FileTreeWidget {
      * button when the workspace root is not yet set.
      */
     protected renderOpenWorkspaceDiv(): React.ReactNode {
+        const openWorkspaceDescription = this.canOpenWorkspaceFileAndFolder() ?
+            'Select a folder or a workspace-file to open as your workspace' :
+            'Select a workspace-file to open as your workspace';
+        const openWorkspace = <button className='open-workspace-button' title={openWorkspaceDescription} onClick={this.openWorkspace}>
+            Open Workspace
+        </button>;
+
+        const openFolder = <button className='open-workspace-button' title='Select a folder as your workspace root' onClick={this.openWorkspace}>
+            Open Folder
+        </button>;
+
         return <div className='theia-navigator-container'>
             <div className='center'>You have not yet opened a workspace.</div>
             <div className='open-workspace-button-container'>
-                <button className='open-workspace-button' title='Select a folder as your workspace root' onClick={this.openWorkspace}>
-                    Open Workspace
-                </button>
+                {openWorkspace}
+                {!this.canOpenWorkspaceFileAndFolder() ? openFolder : ''}
             </div>
         </div>;
     }
