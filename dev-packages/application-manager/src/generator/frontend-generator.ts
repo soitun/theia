@@ -101,52 +101,66 @@ if (process.env.LC_ALL) {
 }
 process.env.LC_NUMERIC = 'C';
 
+const electron = require('electron');
 const { join } = require('path');
 const { isMaster } = require('cluster');
 const { fork } = require('child_process');
-const { app, BrowserWindow, ipcMain } = require('electron');
-
-const windows = [];
-
-function createNewWindow(theUrl) {
-    const newWindow = new BrowserWindow({ width: 1024, height: 728, show: !!theUrl });
-    if (windows.length === 0) {
-        newWindow.webContents.on('new-window', (event, url, frameName, disposition, options) => {
-            // If the first electron window isn't visible, then all other new windows will remain invisible.
-            // https://github.com/electron/electron/issues/3751
-            options.show = true;
-            options.width = 1024;
-            options.height = 728;
-        });
-    }
-    windows.push(newWindow);
-    if (!!theUrl) {
-        newWindow.loadURL(theUrl);
-    } else {
-        newWindow.on('ready-to-show', () => newWindow.show());
-    }
-    newWindow.on('closed', () => {
-        const index = windows.indexOf(newWindow);
-        if (index !== -1) {
-            windows.splice(index, 1);
-        }
-        if (windows.length === 0) {
-            app.exit(0);
-        }
-    });
-    return newWindow;
-}
+const { app, BrowserWindow, ipcMain } = electron;
 
 if (isMaster) {
-    app.on('window-all-closed', () => {
-        if (process.platform !== 'darwin') {
-            app.quit();
-        }
-    });
-    ipcMain.on('create-new-window', (event, url) => {
-        createNewWindow(url);
-    });
     app.on('ready', () => {
+        const { screen } = electron;
+        const windows = [];
+
+        function createNewWindow(theUrl) {
+
+            // We must center by hand because \`browserWindow.center()\` fails on multi-screen setups
+            // See: https://github.com/electron/electron/issues/3490
+            const { bounds } = screen.getDisplayNearestPoint(screen.getCursorScreenPoint());
+            const height = Math.floor(bounds.height * (2/3));
+            const width = Math.floor(bounds.width * (2/3));
+
+            const y = Math.floor(bounds.y + (bounds.height - height) / 2);
+            const x = Math.floor(bounds.x + (bounds.width - width) / 2);
+
+            const newWindow = new BrowserWindow({ width, height, x, y, show: !!theUrl });
+
+            if (windows.length === 0) {
+                newWindow.webContents.on('new-window', (event, url, frameName, disposition, options) => {
+                    // If the first electron window isn't visible, then all other new windows will remain invisible.
+                    // https://github.com/electron/electron/issues/3751
+                    options.show = true;
+                    options.width = width;
+                    options.height = height;
+                });
+            }
+            windows.push(newWindow);
+            if (!!theUrl) {
+                newWindow.loadURL(theUrl);
+            } else {
+                newWindow.on('ready-to-show', () => newWindow.show());
+            }
+            newWindow.on('closed', () => {
+                const index = windows.indexOf(newWindow);
+                if (index !== -1) {
+                    windows.splice(index, 1);
+                }
+                if (windows.length === 0) {
+                    app.exit(0);
+                }
+            });
+            return newWindow;
+        }
+
+        app.on('window-all-closed', () => {
+            if (process.platform !== 'darwin') {
+                app.quit();
+            }
+        });
+        ipcMain.on('create-new-window', (event, url) => {
+            createNewWindow(url);
+        });
+
         // Check whether we are in bundled application or development mode.
         // @ts-ignore
         const devMode = process.defaultApp || /node_modules[\/]electron[\/]/.test(process.execPath);
