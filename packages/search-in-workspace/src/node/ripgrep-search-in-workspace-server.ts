@@ -74,7 +74,12 @@ export class RipgrepSearchInWorkspaceServer implements SearchInWorkspaceServer {
         if (options && options.includeIgnored) {
             args.push('-uu');
         }
-        args.push(options && options.useRegExp ? '--regexp' : '--fixed-strings');
+        if (options && options.useRegExp) {
+            args.push('--regexp');
+        } else {
+            args.push('--fixed-strings');
+            args.push('--');
+        }
         return args;
     }
 
